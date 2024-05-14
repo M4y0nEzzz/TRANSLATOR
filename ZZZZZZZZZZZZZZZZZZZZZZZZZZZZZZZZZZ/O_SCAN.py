@@ -13,13 +13,14 @@ chEOL = '\n'
 chEOT = '\0'
 nkw = 0
 KWTable = []
+Name = ''
 
 
-lexNone, lexName, lexNum, lexMODULE, lexIMPORT, lexBEGIN, lexEND, \
-lexCONST, lexVAR, lexWHILE, lexDO, lexIF, lexTHEN, lexELSIF, lexELSE, \
-lexMult, lexDIV, lexMOD, lexPlus, lexMinus, lexEQ, lexNE, lexLT, \
-lexLE, lexGT, lexGE, lexDot, lexComma, lexColon, lexSemi, \
-lexAss, lexLpar, lexRpar, lexEOT, lexFCK = range(35)
+[lexNone, lexName, lexNum, lexMODULE, lexIMPORT, lexBEGIN, lexEND,
+ lexCONST, lexVAR, lexWHILE, lexDO, lexIF, lexTHEN, lexELSIF, lexELSE,
+ lexMult, lexDIV, lexMOD, lexPlus, lexMinus, lexEQ, lexNE, lexLT,
+ lexLE, lexGT, lexGE, lexDot, lexComma, lexColon, lexSemi,
+ lexAss, lexLpar, lexRpar, lexEOT, lexFCK] = range(35)
 
 
 # Процедура для ввода ключевых слов
@@ -31,7 +32,7 @@ def enter_kw(name, lex):
 
 # Функция для тестирования ключевых слов
 def test_kw():
-    global nkw, KWTable, Name
+    global nkw, KWTable
     i = nkw
     while i > 0 and Name != KWTable[i - 1]['Word']:
         i -= 1
@@ -40,7 +41,6 @@ def test_kw():
 
 # Процедура для идентификаторов
 def ident():
-    global Name, Lex
     i = 0
     Name = ''
     while True:
@@ -57,13 +57,13 @@ def ident():
 
 # Процедура для чисел
 def number():
-    global Lex, Num
-    Lex = 'lexNum'
-    Num = 0
+    global lex, num
+    lex = 'lexNum'
+    num = 0
     while True:
         d = ord(ch) - ord('0')
-        if (MaxInt - d) // 10 >= Num:
-            Num = 10 * Num + d
+        if (MaxInt - d) // 10 >= num:
+            num = 10 * num + d
         else:
             error('Слишком большое число')
         next_ch()
@@ -169,6 +169,7 @@ def next_lex():
 def init_scan():
     global nkw, KWTable
     nkw = 0
+
 
 # Добавление ключевых слов в таблицу
 enter_kw('ARRAY',     lexNone)

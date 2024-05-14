@@ -62,9 +62,9 @@ def close_scope():
 def new_name(name, cat):
     global top
     obj_ref = top
-    while obj_ref.cat != Cat.GUARD and obj_ref.name != name:
+    while obj_ref is not None and obj_ref.cat != Cat.GUARD and obj_ref.name != name:
         obj_ref = obj_ref.prev
-    if obj_ref.cat == Cat.GUARD:
+    if obj_ref is None or obj_ref.cat == Cat.GUARD:
         obj_ref = ObjRec(name, cat, Type.NONE, 0, top)
         top = obj_ref
     else:

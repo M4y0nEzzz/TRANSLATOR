@@ -12,12 +12,20 @@ class Cat:
     CONST, VAR, TYPE, STPROC, MODULE, GUARD = range(6)
 
 
-class tType:
+class t_type:
     typNONE, typINT, typBOOL = range(3)
 
 
+class TName:
+    slots = ['name']
+
+    def __init__(self, name: str):
+        if len(name) > name_len:
+            raise ValueError(f"Имя не может быть длиннее {name_len} символов.")
+        self.name = name
+
 class tObj:
-    def __init__(self, name: 'TName', cat: 'TCat', typ: 'TType', val: int, prev: Optional['TObjRec']):
+    def __init__(self, name: 'TName', cat: 'Cat', typ: 't_type', val: int, prev: Optional['tObj'] = None):
         self.name = name
         self.cat = cat
         self.typ = typ
@@ -42,103 +50,89 @@ spOutLn = 11
 name_len = 31
 PC = 0
 
-
-lexMODULE = 'MODULE'
-lexName = 'NAME'
-lexSemi = ';'
-lexIMPORT = 'IMPORT'
-lexBEGIN = 'BEGIN'
-lexEND = 'END'
-lexDot = '.'
-
 catModule = 'MODULE'
 cmStop = 'STOP'
 
+top = None
 
-# Функции, заменяющие процедуры Pascal
-def check(L, M):
-    global Lex
-    if Lex != L:
-        expected(M)
+
+def check(l, m):
+    if Lex != l:
+        expected(m)
     else:
         next_lex()
 
 
-def const_expr(V):
-    global Lex, Num, Name
-    X = tObj()
-    Op = '+'
+def const_expr():
+    v = None
+    x = tObj(TName("Имя"), Cat.VAR, t_type.typINT, 0, None)
+    op = '+'
     if Lex in ['+', '-']:
-        Op = Lex
+        op = Lex
         next_lex()
     if Lex == 'NUM':
-        V = Num
+        v = Num
         next_lex()
     elif Lex == 'NAME':
-        find(Name, X)
-        if X.Cat == 'catGuard':
+        find(Name, x)
+        if x.cat == 'catGuard':
             error('Нельзя определять константу через себя')
-        elif X.Cat != 'catConst':
+        elif x.cat != 'catConst':
             expected('имя константы')
         else:
-            V = X.Val
+            v = x.val
         next_lex()
     else:
         expected('константное выражение')
-    if Op == '-':
-        V = -V
-    return V
+    if op == '-':
+        v = -v
+    return v
 
 
 def const_decl():
-    global Lex, Name
-    ConstRef = tObj()
-    new_name(Name, 'catGuard', ConstRef)
+    const_ref = {}
+    new_name(name, Cat.GUARD)
     next_lex()
-    check('=', '"="')
-    ConstRef.Val = const_expr(ConstRef.Val)
-    ConstRef.Typ = 'typInt'
-    ConstRef.Cat = 'catConst'
+    check('lexEQ', '=')
+    const_ref['Val'] = const_expr()
+    const_ref['Typ'] = 'typInt'
+    const_ref['Cat'] = 'catConst'
 
 
 def parse_type():
-    global Lex, Name  # Предполагается, что эти переменные определены глобально
-
     if Lex != lexName:
         expected('имя')
     else:
         TypeRef = find(Name)
-        if TypeRef.cat != Сat.Type:
+        if TypeRef.cat != Cat.TYPE:
             expected('имя типа')
-        elif TypeRef.typ != typInt:
+        elif TypeRef.typ != t_type.typINT:
             expected('целый тип')
         next_lex()
 
 
 def var_decl():
-    global Lex, Name
     if Lex != 'NAME':
         expected('имя')
     else:
-        NameRef = tObj()
-        new_name(Name, 'catVar', NameRef)
-        NameRef.Typ = 'typInt'
+        nameref = tObj()
+        new_name(Name, 'catVar', nameref)
+        nameref.Typ = 'typInt'
         next_lex()
     while Lex == ',':
         next_lex()
         if Lex != 'NAME':
             expected('имя')
         else:
-            NameRef = tObj()
-            new_name(Name, 'catVar', NameRef)
-            NameRef.Typ = 'typInt'
+            nameref = tObj()
+            new_name(Name, 'catVar', nameref)
+            nameref.Typ = 'typInt'
             next_lex()
     check(':', '":"')
     parse_type()
 
 
 def decl_seq():
-    global Lex
     while Lex in ['CONST', 'VAR']:
         if Lex == 'CONST':
             next_lex()
@@ -153,85 +147,84 @@ def decl_seq():
 
 
 def int_expression():
-    T = tType()
+    T = t_type()
     expression(T)
     if T != 'typInt':
         expected('выражение целого типа')
 
 
-def st_func(F, T):
-    if F == spABS:
+def st_func(f, t):
+    if f == spABS:
         int_expression()
         gen_abs()
-        T = 'typInt'
-    elif F == spMAX:
+        t = 'typInt'
+    elif f == spMAX:
         parse_type()
         gen(MaxInt)
-        T = 'typInt'
-    elif F == spMIN:
+        t = 'typInt'
+    elif f == spMIN:
         parse_type()
         gen_min()
-        T = 'typInt'
-    elif F == spODD:
+        t = 'typInt'
+    elif f == spODD:
         int_expression()
         gen_odd()
-        T = 'typBool'
-    return T
+        t = 'typBool'
+    return t
 
 
-def factor(T):
-    global Lex, Name, Num
-    X = tObj()
+def factor(t):
+    x = tObj()
     if Lex == 'NAME':
-        find(Name, X)
-        if X.Cat == 'catVar':
-            gen_addr(X)
+        find(Name, x)
+        if x.cat == 'catVar':
+            gen_addr(x)
             gen(CM_LOAD)
-            T = X.Typ
+            t = x.typ
             next_lex()
-        elif X.Cat == 'catConst':
-            gen_const(X.Val)
-            T = X.Typ
+        elif x.cat == 'catConst':
+            gen_const(x.val)
+            t = x.typ
             next_lex()
-        elif X.Cat == 'catStProc' and X.Typ != 'typNone':
+        elif x.cat == 'catStProc' and x.typ != 'typNone':
             next_lex()
             check('(', '"("')
-            T = st_func(X.Val, T)
+            t = st_func(x.val, t)
             check(')', '")"')
         else:
             expected('переменная, константа или процедура-функции')
     elif Lex == 'NUM':
-        T = 'typInt'
+        t = 'typInt'
         gen_const(Num)
         next_lex()
     elif Lex == '(':
         next_lex()
-        expression(T)
+        expression(t)
         check(')', '")"')
     else:
         expected('имя, число или "("')
-    return T
+    return t
 
 
-def term(T):
+def term(t):
     global Lex
-    Op = None
-    T = factor(T)
+    op = None
+    t = factor(t)
     while Lex in ['*', '/', '%']:
-        if T != 'typInt':
+        if t != 'typInt':
             error('Несоответствие операции типу операнда')
-        Op = Lex
+        op = Lex
         next_lex()
-        T = factor(T)
-        if T != 'typInt':
+        t = factor(t)
+        if t != 'typInt':
             expected('выражение целого типа')
-        if Op == '*':
+        if op == '*':
             gen('cmMult')
-        elif Op == '/':
+        elif op == '/':
             gen('cmDIV')
-        elif Op == '%':
+        elif op == '%':
             gen('cmMOD')
-    return T
+    return t
 
 
 def simple_expr(T):
@@ -261,37 +254,35 @@ def simple_expr(T):
             gen('cmSub')
 
 
-def expression(T):
+def expression(t):
     global Lex
-    Op = None
-    simple_expr(T)
+    op = None
+    simple_expr(t)
     if Lex in ['==', '!=', '>', '>=', '<', '<=']:
-        Op = Lex
-        if T != 'typInt':
+        op = Lex
+        if t != 'typInt':
             error('Несоответствие операции типу операнда')
         next_lex()
-        simple_expr(T)
-        if T != 'typInt':
+        simple_expr(t)
+        if t != 'typInt':
             expected('выражение целого типа')
-        gen_comp(Op)
-        T = 'typBool'
+        gen_comp(op)
+        t = 'typBool'
 
 
 def variable():
-    global Lex, Name
-    X = tObj()
+    x = tObj()
     if Lex != 'NAME':
         expected('имя')
     else:
-        find(Name, X)
-        if X.Cat != 'catVar':
+        find(Name, x)
+        if x.cat != 'catVar':
             expected('имя переменной')
-        gen_addr(X)
+        gen_addr(x)
         next_lex()
 
 
 def st_proc(sp):
-    global Lex
     c = None
     if sp == spDEC:
         variable()
@@ -335,9 +326,9 @@ def st_proc(sp):
 
 
 def bool_expression():
-    T = tType()
-    expression(T)
-    if T != 'typBool':
+    t = t_type()
+    expression(t)
+    if t != 'typBool':
         expected('логическое выражение')
 
 
@@ -398,7 +389,6 @@ def if_statement():
 
 
 def while_statement():
-    global PC
     while_pc = PC
     check('WHILE')
     bool_expression()
@@ -412,7 +402,6 @@ def while_statement():
 
 
 def statement():
-    global lex, name
     if lex == 'NAME':
         x = find(name)
         if x['Cat'] == 'MODULE':

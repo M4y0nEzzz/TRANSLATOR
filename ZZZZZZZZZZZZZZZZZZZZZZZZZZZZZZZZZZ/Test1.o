@@ -1,0 +1,27 @@
+MODULE Primes;
+IMPORT In, Out;
+VAR
+    n, p, i, d, c, cnt: INTEGER;
+BEGIN
+    In.Open();
+    In.Int(n);
+    p := 2;
+    cnt := 0;
+    WHILE p <= n DO
+        d := 2;
+        c := p;
+        WHILE d * d <= c DO
+            IF c MOD d = 0 THEN
+                c := 0;
+            END;
+            INC(d);
+        END;
+        IF c # 0 THEN
+            Out.Int(c, 8);
+            INC(cnt);
+        END;
+        INC(p);
+    END;
+    Out.Ln();
+    Out.Int(cnt, 0);
+END Primes.

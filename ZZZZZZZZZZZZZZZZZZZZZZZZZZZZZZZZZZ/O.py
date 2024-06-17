@@ -6,4 +6,4 @@ if len(sys.argv) != 2:
     sys.exit(0)
 filename = sys.argv[1]
 Parser.parse(filename)
-print('Ok')
+print('Конвертация завершена')

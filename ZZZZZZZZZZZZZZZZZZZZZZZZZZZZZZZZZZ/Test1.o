@@ -1,13 +1,14 @@
 MODULE Primes;
 IMPORT In, Out;
 VAR
-    n, p, i, d, c, cnt: INTEGER;
+    q, p, i, d, c, cnt: INTEGER;
 BEGIN
+
     In.Open();
-    In.Int(n);
+    In.Int(q);
     p := 2;
     cnt := 0;
-    WHILE p <= n DO
+    WHILE p <= q DO
         d := 2;
         c := p;
         WHILE d * d <= c DO
@@ -20,8 +21,11 @@ BEGIN
             Out.Int(c, 8);
             INC(cnt);
         END;
-        INC(p);
+        INC(p); (*  inc(x)   x = x + 1  *)
     END;
     Out.Ln();
     Out.Int(cnt, 0);
+    (*
+    Out.Int(5 DIV 2, 0);
+    *)
 END Primes.

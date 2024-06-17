@@ -10,7 +10,7 @@ def init(filename):
         text = f.read()
     pos = -1
 
-def nextChar():
+def next_ch():
     global pos
     if pos < len(text):
         pos += 1
@@ -21,7 +21,7 @@ def nextChar():
 def error(message, pos = None):
     if pos is None:
         pos = globals()['pos']
-    lineStartPos = text.rfind('\n', 0, pos) + 1 # если не найдено - возвращает -1, нам подходит
+    lineStartPos = text.rfind('\n', 0, pos) + 1
     afterLinePos = text.find('\n', lineStartPos)
     if afterLinePos == -1:
         afterLinePos = len(text)

@@ -45,123 +45,129 @@ lexPos = -1
 name = ''
 value = -1
 
-def nextChar():
-    global c
-    c = Text.nextChar()
+
+def next_ch():
+    global ch
+    ch = Text.next_ch()
+
 
 def init(fileName):
     Text.init(fileName)
-    nextChar()
+    next_ch()
+
 
 def scanName():
-    assert 'A' <= c <= 'Z' or 'a' <= c <= 'z'
+    assert 'A' <= ch <= 'Z' or 'a' <= ch <= 'z'
     global name
-    name = c
-    nextChar()
-    while 'A' <= c <= 'Z' or 'a' <= c <= 'z' or '0' <= c <= '9':
-        name += c
-        nextChar()
+    name = ch
+    next_ch()
+    while 'A' <= ch <= 'Z' or 'a' <= ch <= 'z' or '0' <= ch <= '9':
+        name += ch
+        next_ch()
     if name in KEYWORDS:
         return KEYWORDS[name]
     else:
         return Lex.NAME
 
+
 def scanNumber():
-    assert '0' <= c <= '9'
+    assert '0' <= ch <= '9'
     global value
-    value = ord(c) - ord('0')
-    nextChar()
-    while '0' <= c <= '9':
-        d = ord(c) - ord('0')
+    value = ord(ch) - ord('0')
+    next_ch()
+    while '0' <= ch <= '9':
+        d = ord(ch) - ord('0')
         value = value * 10 + d
         if value > MAXINT:
             error(f'слишком большое число, максимум {MAXINT}')
-        nextChar()
+        next_ch()
     return Lex.NUMBER
+
 
 def skipComment():
     while True:
-        if c == chEOT:
+        if ch == chEOT:
             error('неожиданный конец комментария')
-        elif c == '*':
-            nextChar()
-            if c == ')':
-                nextChar()
+        elif ch== '*':
+            next_ch()
+            if ch == ')':
+                next_ch()
                 return
-        elif c == '(':
-            nextChar()
-            if c == '*':
-                nextChar()
+        elif ch == '(':
+            next_ch()
+            if ch == '*':
+                next_ch()
                 skipComment()
         else:
-            nextChar()
+            next_ch()
+
 
 def nextLex():
-    while c in (' ', '\t', '\r', '\n'):
-        nextChar()
+    while ch in (' ', '\t', '\r', '\n'):
+        next_ch()
     global lexPos
     lexPos = Text.pos
-    if 'A' <= c <= 'Z' or 'a' <= c <= 'z':
+    if 'A' <= ch <= 'Z' or 'a' <= ch <= 'z':
         return scanName()
-    elif '0' <= c <= '9':
+    elif '0' <= ch <= '9':
         return scanNumber()
-    elif c == ';':
-        nextChar()
+    elif ch == ';':
+        next_ch()
         return Lex.SEMICOLON
-    elif c == ':':
-        nextChar()
-        if c == '=':
-            nextChar()
+    elif ch == ':':
+        next_ch()
+        if ch == '=':
+            next_ch()
             return Lex.ASSIGN
         else:
             return Lex.COLON
-    elif c == ',':
-        nextChar()
+    elif ch == ',':
+        next_ch()
         return Lex.COMMA
-    elif c == '(':
-        nextChar()
-        if c == '*':
-            nextChar()
+    elif ch == '(':
+        next_ch()
+        if ch == '*':
+            next_ch()
             skipComment()
             return nextLex()
         else:
             return Lex.LPAR
-    elif c == ')':
-        nextChar()
+    elif ch == ')':
+        next_ch()
         return Lex.RPAR
-    elif c == '.':
-        nextChar()
+    elif ch == '.':
+        next_ch()
         return Lex.DOT
-    elif c == '+':
-        nextChar()
+    elif ch == '+':
+        next_ch()
         return Lex.PLUS
-    elif c == '-':
-        nextChar()
+    elif ch == '-':
+        next_ch()
         return Lex.MINUS
-    elif c == '*':
-        nextChar()
+    elif ch == '*':
+        next_ch()
         return Lex.MULTIPLY
-    elif c == '=':
-        nextChar()
+    elif ch == '=':
+        next_ch()
         return Lex.EQ
-    elif c == '#':
-        nextChar()
+    elif ch == '#':
+        next_ch()
         return Lex.NE
-    elif c == '<':
-        nextChar()
-        if c == '=':
-            nextChar()
+    elif ch == '<':
+        next_ch()
+        if ch == '=':
+            next_ch()
             return Lex.LE
         else:
             return Lex.LT
-    elif c == '>':
-        nextChar()
-        if c == '=':
-            nextChar()
+    elif ch == '>':
+        next_ch()
+        if ch == '=':
+            next_ch()
             return Lex.GE
         else:
             return Lex.GT
-    elif c == chEOT:
+    elif ch == chEOT:
         return Lex.EOT
     else:
         error('недопустимый символ')

@@ -1,0 +1,12 @@
+local X = io.read("*n")
+local Y = io.read("*n")
+
+while X ~= Y do
+    if X > Y then
+        X = X - Y
+    else
+        Y = Y - X
+    end
+end
+
+print(string.format("%d", X))

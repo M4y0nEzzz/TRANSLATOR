@@ -9,10 +9,20 @@ class BuiltIn(Enum):
 
 table = []
 
-keywordC = ['and', 'break', 'do', 'else', 'elseif', 'end',
-            'false', 'for', 'function', 'goto', 'if', 'in', 'local',
-            'nil', 'not', 'or', 'repeat', 'return',
-            'then', 'true', 'until', 'while']
+keywordLUA = [
+    # keywords:
+    'and', 'break', 'do', 'else', 'elseif', 'end',
+    'false', 'for', 'function', 'goto', 'if', 'in',
+    'local', 'nil', 'not', 'or', 'repeat', 'return',
+    'then', 'true', 'until', 'while'
+    # in-out:
+    'close', 'flush', 'input', 'lines', 'open',
+    'output', 'popen', 'read', 'tmpfile',
+    'type', 'write', 'seek', 'setvbuf',
+    'stdin', 'stdout', 'stderr',
+    # libraries:
+    'io', 'math', 'os'
+]
 
 def openScope():
     table.append({})

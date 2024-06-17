@@ -1,9 +1,11 @@
 from enum import Enum
 
+
 class Lex(Enum):
     NAME, NUMBER, SEMICOLON, ASSIGN, COLON, COMMA, LPAR, RPAR, DOT, PLUS, MINUS, \
     MULTIPLY, EQ, NE, LE, LT, GE, GT, BEGIN, CONST, DIV, DO, ELSE, ELSIF, \
     END, IF, IMPORT, MOD, MODULE, THEN, VAR, WHILE, NONE, EOT = range(34)
+
 
 lexToStr = {
     Lex.NAME: 'имя',

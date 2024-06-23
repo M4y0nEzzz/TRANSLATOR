@@ -8,13 +8,7 @@ from Table import keywordLUA
 
 lText = ''
 tab = '   '
-importModule = set()
 isOdd = False
-isDiv = False
-isMod = False
-isSemicolonAndNewLine = True
-isSemicolon = True
-uni = 0
 
 
 def convert(convertLex):
@@ -50,7 +44,7 @@ factor = ident ["(" expression ")"] | number | "(" expression ")".
 
 
 def factor():
-    global isOdd, isMod, importModule
+    global isOdd, importModule
     if lex == Lex.NAME:
         namePos = lexPos
         name = Scanner.name
@@ -67,12 +61,9 @@ def factor():
 
             if obj['id'] == BuiltIn.ABS:
                 convert('math.abs(')
-                importModule.add('("math")')
             elif obj['id'] == BuiltIn.ODD:
-                convert('function isOdd(')
-                isMod = True
+                convert('isOdd(')
                 isOdd = True
-
             argKind, argType = expression()
 
             assert argKind in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
@@ -81,6 +72,7 @@ def factor():
             skip(Lex.RPAR)
 
             if obj['id'] == BuiltIn.ABS:
+                convert(')')
                 if argKind == Kind.CONST_EXPR and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER
                 elif argKind in (Kind.VAR, Kind.GENERAL_EXPR) and argType == BuiltIn.INTEGER:
@@ -89,15 +81,13 @@ def factor():
                     error('недопустимый аргумент функции ABS - ожидается целочисленное выражение', exprPos)
                 convert(')')
             elif obj['id'] == BuiltIn.MAX:
-                convert('math.max(')
-                importModule.add('("math")')
+                convert('math.tointeger(2^31-1)')
                 if argKind == Kind.TYPE_NAME and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER
                 else:
                     error('недопустимый аргумент функции MAX - ожидается имя целочисленного типа', exprPos)
             elif obj['id'] == BuiltIn.MIN:
-                convert('math.min(')
-                importModule.add('("math")')
+                convert('math.tointeger(-2^31)')
                 if argKind == Kind.TYPE_NAME and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER
                 else:
@@ -117,14 +107,14 @@ def factor():
             elif obj['kind'] == Kind.VAR:
                 assert obj['type'] == BuiltIn.INTEGER
                 if name in keywordLUA:
-                    convert('_' + name)
+                    convert(name + '_')
                 else:
                     convert(name)
                 return Kind.VAR, BuiltIn.INTEGER
             elif obj['kind'] == Kind.CONST:
                 assert obj['type'] == BuiltIn.INTEGER
                 if name in keywordLUA:
-                    convert('_' + name)
+                    convert(name + '_')
                 else:
                     convert(name)
                 return Kind.CONST_EXPR, BuiltIn.INTEGER
@@ -165,36 +155,24 @@ MulOperator = "*"|DIV|MOD.
 
 
 def term():
-    global lText, importModule, isDiv, isMod
-    convert('(')
-    figScSt = lText.rfind('(')
-    isFigScSt = True
+    global lText
     kind1, type1 = factor()
 
     assert kind1 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
     assert type1 in (BuiltIn.INTEGER, BuiltIn.BOOLEAN)
 
-    delen = False
-    delenCol = 0
     while lex in (Lex.MULTIPLY, Lex.DIV, Lex.MOD):
         if lex == Lex.MULTIPLY:
             convert(' * ')
-            lText = lText[:-(len(lText) - figScSt)] + lText[figScSt:]
         elif lex == Lex.DIV:
             convert(' // ')
-            lText = lText[:-(len(lText) - figScSt)] + lText[figScSt:]
-            delen = True
         else:
             convert(' % ')
-            lText = lText[:-(len(lText) - figScSt)] + lText[figScSt:]
-            isMod = True
-            delen = True
+
         binaryPos = lexPos
         nextLex()
         kind2, type2 = factor()
-        if delen:
-            convert(')')
-        delen = False
+
         assert kind2 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
         assert type2 in (BuiltIn.INTEGER, BuiltIn.BOOLEAN)
 
@@ -210,10 +188,7 @@ def term():
             # type1 == BuiltIn.INTEGER
         else:
             error('недопустимые типы операндов - ожидается два целочисленных выражения', binaryPos)
-    convert(')'*delenCol)
-    if isFigScSt:
-        figSc = lText.rfind('(')
-        lText = lText[:-(len(lText) - figSc)] + lText[figSc+1:]
+
     return kind1, type1
 
 
@@ -345,52 +320,72 @@ def procedureCallArguments(procId):
     global importModule, isSemicolonAndNewLine
     if procId == BuiltIn.HALT:
         skip(Lex.LPAR)
-        convert('os.exit(')
+        convert('print(\"Программа завершена с кодом возврата \".. ')
         intExpression()
         skip(Lex.RPAR)
-        convert(')')
+        convert(')\n')
+        convert('os.exit()')
     elif procId == BuiltIn.INC:
         skip(Lex.LPAR)
+        convert('{')
         intVariable()
-        convert(' =')
-        # Написать функцию inc
-        convert(' + 1')
+        convert(' = ')
+        figSc = lText.rfind('{')
+        lText = lText + lText[figSc + 1:][:-2]
+        figSc = lText.rfind('{')
+        lText = lText[:-(len(lText) - figSc)] + lText[figSc + 1:]
+        if lex == Lex.COMMA:
+            convert('+ ')
+            nextLex()
+            intExpression()
+        else:
+            convert('+ 1')
         skip(Lex.RPAR)
     elif procId == BuiltIn.DEC:
         skip(Lex.LPAR)
+        convert('{')
         intVariable()
-        convert(' =')
-        # Написать функцию dec
-        convert(' - 1')
+        convert('=')
+        figSc = lText.rfind('{')
+        lText = lText + lText[figSc + 1:][:-2]
+        figSc = lText.rfind('{')
+        lText = lText[:-(len(lText) - figSc)] + lText[figSc + 1:]
+        if lex == Lex.COMMA:
+            convert('- ')
+            nextLex()
+            intExpression()
+        else:
+            convert('- 1')
         skip(Lex.RPAR)
     elif procId == BuiltIn.IN_OPEN:
         skip(Lex.LPAR)
         skip(Lex.RPAR)
-        lText = lText[:-len(tab)]
-        isSemicolonAndNewLine = False
     elif procId == BuiltIn.IN_INT:
         skip(Lex.LPAR)
         intVariable()
-        convert(' = io.read("*n"')
+        convert(' = io.read(\"*n\"')
         skip(Lex.RPAR)
         convert(')')
     elif procId == BuiltIn.OUT_INT:
         skip(Lex.LPAR)
-        convert('io.write(\"')
+        convert('print(string.format(\"%\".. {')
         intExpression()
-        otstupStartPos = lText.rfind('\"')
-        otstupExpr = lText[otstupStartPos + 1:]
-        lText = lText[:-(len(lText) - otstupStartPos)]
+        figSc = lText.rfind('{')
+        intExpr = lText[figSc + 1:]
+        lText = lText[:-(len(lText) - figSc)]
         skip(Lex.COMMA)
         intExpression()
-        convert(', ' + otstupExpr)
+        convert(' .. \"d\", ' + intExpr + ')')
+        figSc = lText.rfind('{')
+        lText = lText[:-(len(lText) - figSc)] + lText[figSc + 1:]
         skip(Lex.RPAR)
         convert(')')
+
     else:
         assert procId == BuiltIn.OUT_LN
         skip(Lex.LPAR)
         skip(Lex.RPAR)
-        convert('io.write("\\n")')
+        convert('print()')
 
 
 '''
@@ -411,7 +406,7 @@ statement = [
 
 
 def statement(colTab):
-    global tab, lText, isSemicolon
+    global tab, lText
     convert(tab*colTab)
     if lex == Lex.NAME:
         name = Scanner.name
@@ -423,7 +418,7 @@ def statement(colTab):
             error(f'имя {name} не найдено', namePos)
         if lex == Lex.ASSIGN:
             if name in keywordLUA:
-                convert('_' + name + ' = ')
+                convert(name + '_ = ')
             else:
                 convert(name + ' = ')
             nextLex()
@@ -452,50 +447,44 @@ def statement(colTab):
                 procId = obj['id']
             procedureCallArguments(procId)
     elif lex == Lex.IF:
-        convert('if ')
+        convert('if')
         nextLex()
-        convert('(')
+        convert(' ')
         boolExpression()
-        convert(')')
+        convert(' ')
         skip(Lex.THEN)
-        convert(' then\n')
-        statementSequence(colTab + 1)
+        convert('then\n')
+        statementSequence(colTab+1)
         while lex == Lex.ELSIF:
-            # lText = lText[:-len(tab)]
-            convert(' elseif ')
+            lText = lText[:-len(tab)]
+            convert('elsif')
             nextLex()
-            convert('(')
+            convert(' ')
             boolExpression()
-            convert(')')
+            convert(' ')
             skip(Lex.THEN)
-            convert(' \n')
+            convert('then\n')
             statementSequence(colTab + 1)
         if lex == Lex.ELSE:
-            convert('\n')
-            statementSequence(colTab)
-            convert('else \n')
+            lText = lText[:-len(tab)]
+            convert('else\n')
             nextLex()
             statementSequence(colTab + 1)
-            convert('\n')
-            statementSequence(colTab)
-            convert('end')
         skip(Lex.END)
         lText = lText[:-len(tab)]
         convert('end')
-        isSemicolon = False
     elif lex == Lex.WHILE:
-        convert('while ')
+        convert('while')
         nextLex()
-        convert('(')
+        convert(' ')
         boolExpression()
-        convert(')')
+        convert(' ')
         skip(Lex.DO)
-        convert(' do\n')
+        convert('do\n')
         statementSequence(colTab + 1)
         skip(Lex.END)
         lText = lText[:-len(tab)]
         convert('end')
-        isSemicolon = False
 
 
 '''
@@ -504,15 +493,9 @@ StatementSequence = statement {statement }.
 
 
 def statementSequence(colTab):
-    global isSemicolon, isSemicolonAndNewLine
     statement(colTab)
     while lex == Lex.SEMICOLON:
-        if not isSemicolon:
-            convert('\n')
-        elif isSemicolonAndNewLine:
-            convert('\n')
-        else:
-            isSemicolonAndNewLine = True
+        convert('\n')
         nextLex()
         statement(colTab)
 
@@ -528,10 +511,6 @@ def variableDeclaration():
     while True:
         namePos = lexPos
         name = skipName('имя переменной')
-        if name in keywordLUA:
-            convert(name + '1')
-        else:
-            convert(name)
         try:
             varObj = {'kind': Kind.VAR}
             vars.append(varObj)
@@ -539,7 +518,6 @@ def variableDeclaration():
         except Table.NameAlreadyDefined:
             error(f'имя {name} уже определено', namePos)
         if lex == Lex.COMMA:
-            convert(', ')
             nextLex()
         else:
             break
@@ -567,7 +545,7 @@ def constDeclaration():
     namePos = lexPos
     name = skipName('имя константы')
     if name in keywordLUA:
-        convert(name + '1')
+        convert(name + '_')
     else:
         convert(name)
     try:
@@ -578,6 +556,7 @@ def constDeclaration():
 
     skip(Lex.EQ)
     convert(' = ')
+
     exprPos = lexPos
     kind, type = expression()
 
@@ -601,17 +580,14 @@ def declarationSequence():
         if lex == Lex.CONST:
             nextLex()
             while lex == Lex.NAME:
-                convert('local ')
                 constDeclaration()
                 skip(Lex.SEMICOLON)
                 convert('\n')
         elif lex == Lex.VAR:
             nextLex()
             while lex == Lex.NAME:
-                convert('local ')
                 variableDeclaration()
                 skip(Lex.SEMICOLON)
-                convert('\n')
         else:
             break
 
@@ -622,7 +598,6 @@ ImportList = IMPORT ident {"," ident}.
 
 
 def importList():
-    global importModule
     skip(Lex.IMPORT)
     while True:
         namePos = lexPos
@@ -648,7 +623,6 @@ def importList():
         else:
             break
     skip(Lex.SEMICOLON)
-    # importModule.add("'In', 'Out'")
 
 
 '''
@@ -676,7 +650,7 @@ def module():
     declarationSequence()
     if lex == Lex.BEGIN:
         nextLex()
-        statementSequence(1)
+        statementSequence(0)
     Table.closeScope()
     skip(Lex.END)
     closingNamePos = lexPos
@@ -684,14 +658,14 @@ def module():
     if closingName != moduleName:
         error(f'ожидается {moduleName}', closingNamePos)
     skip(Lex.DOT)
-    lText = lText[:-len(tab)]
+    #lText = lText[:-len(tab)]
     Table.closeScope()
 
 
 def addNameConvertModelesAndisOdd():
-    global lText, importModule
-    for moduleName in importModule:
-        lText = 'require (' + moduleName + ')' +'\n' + lText
+    global lText
+    if isOdd:
+        lText = 'function isOdd(x)\n' + tab + 'return x % 2 == 1 \nend\n' + lText
 
 
 def parse(filename):

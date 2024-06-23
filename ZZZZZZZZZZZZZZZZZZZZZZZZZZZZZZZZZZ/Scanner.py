@@ -2,10 +2,11 @@ import Text
 from Text import error, chEOT
 from Lexemes import Lex
 
-MAXINT=(2**31)-1
+MAXINT = (2**31)-1
 
-#Ключевые слова Оберона-2
-KEYWORDS={
+
+# Ключевые слова Оберона-2
+KEYWORDS = {
     'ARRAY': Lex.NONE,
     'BEGIN': Lex.BEGIN,
     'BY': Lex.NONE,

@@ -14,5 +14,4 @@ BEGIN
       END;
    END;
    Out.Int(X, 0);
-   Out.Ln();
 END Euqlid.

@@ -4,11 +4,13 @@ chEOT = ''
 text = ''
 pos = -1
 
+
 def init(filename):
     global text, pos
-    with open(filename, 'r', encoding = 'utf-8') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         text = f.read()
     pos = -1
+
 
 def next_ch():
     global pos
@@ -17,6 +19,7 @@ def next_ch():
         if pos < len(text):
             return text[pos]
     return chEOT
+
 
 def error(message, pos = None):
     if pos is None:

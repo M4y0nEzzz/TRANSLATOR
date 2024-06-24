@@ -6,14 +6,14 @@ from Table import Kind
 from Table import BuiltIn
 from Table import keywordLUA
 
-lText = ''
+luaText = ''
 tab = '   '
 isOdd = False
 
 
 def convert(convertLex):
-    global lText
-    lText += convertLex
+    global luaText
+    luaText += convertLex
 
 
 def nextLex():
@@ -44,7 +44,7 @@ factor = ident ["(" expression ")"] | number | "(" expression ")".
 
 
 def factor():
-    global isOdd, importModule
+    global isOdd
     if lex == Lex.NAME:
         namePos = lexPos
         name = Scanner.name
@@ -155,7 +155,7 @@ MulOperator = "*"|DIV|MOD.
 
 
 def term():
-    global lText
+    global luaText
     kind1, type1 = factor()
 
     assert kind1 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
@@ -204,7 +204,7 @@ def simpleExpression():
         unaryPos = lexPos
         if lex == lex.PLUS:
             convert('+')
-        else:
+        elif lex == lex.MINUS:
             convert('-')
         nextLex()
         wasUnary = True
@@ -218,7 +218,7 @@ def simpleExpression():
         if kind1 == Kind.VAR and type1 == BuiltIn.INTEGER:
             kind1 = Kind.GENERAL_EXPR
         elif kind1 in (Kind.CONST_EXPR, Kind.GENERAL_EXPR) and type1 == BuiltIn.INTEGER:
-            pass # ok
+            pass
         else:
             error('унарный плюс и минус применимы только к значениям целого типа', unaryPos)
 
@@ -226,7 +226,7 @@ def simpleExpression():
         binaryPos = lexPos
         if lex == lex.PLUS:
             convert(' + ')
-        else:
+        elif lex == lex.MINUS:
             convert(' - ')
         nextLex()
         kind2, type2 = term()
@@ -316,7 +316,7 @@ def intVariable():
 
 
 def procedureCallArguments(procId):
-    global tab, lText
+    global tab, luaText
     global importModule, isSemicolonAndNewLine
     if procId == BuiltIn.HALT:
         skip(Lex.LPAR)
@@ -330,10 +330,10 @@ def procedureCallArguments(procId):
         convert('{')
         intVariable()
         convert(' = ')
-        figSc = lText.rfind('{')
-        lText = lText + lText[figSc + 1:][:-2]
-        figSc = lText.rfind('{')
-        lText = lText[:-(len(lText) - figSc)] + lText[figSc + 1:]
+        figSc = luaText.rfind('{')
+        luaText = luaText + luaText[figSc + 1:][:-2]
+        figSc = luaText.rfind('{')
+        luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
         if lex == Lex.COMMA:
             convert('+ ')
             nextLex()
@@ -346,10 +346,10 @@ def procedureCallArguments(procId):
         convert('{')
         intVariable()
         convert('=')
-        figSc = lText.rfind('{')
-        lText = lText + lText[figSc + 1:][:-2]
-        figSc = lText.rfind('{')
-        lText = lText[:-(len(lText) - figSc)] + lText[figSc + 1:]
+        figSc = luaText.rfind('{')
+        luaText = luaText + luaText[figSc + 1:][:-2]
+        figSc = luaText.rfind('{')
+        luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
         if lex == Lex.COMMA:
             convert('- ')
             nextLex()
@@ -370,14 +370,14 @@ def procedureCallArguments(procId):
         skip(Lex.LPAR)
         convert('print(string.format(\"%\".. {')
         intExpression()
-        figSc = lText.rfind('{')
-        intExpr = lText[figSc + 1:]
-        lText = lText[:-(len(lText) - figSc)]
+        figSc = luaText.rfind('{')
+        intExpr = luaText[figSc + 1:]
+        luaText = luaText[:-(len(luaText) - figSc)]
         skip(Lex.COMMA)
         intExpression()
         convert(' .. \"d\", ' + intExpr + ')')
-        figSc = lText.rfind('{')
-        lText = lText[:-(len(lText) - figSc)] + lText[figSc + 1:]
+        figSc = luaText.rfind('{')
+        luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
         skip(Lex.RPAR)
         convert(')')
 
@@ -406,7 +406,7 @@ statement = [
 
 
 def statement(colTab):
-    global tab, lText
+    global tab, luaText
     convert(tab*colTab)
     if lex == Lex.NAME:
         name = Scanner.name
@@ -456,7 +456,7 @@ def statement(colTab):
         convert('then\n')
         statementSequence(colTab+1)
         while lex == Lex.ELSIF:
-            lText = lText[:-len(tab)]
+            # luaText = luaText[:-len(tab)]
             convert('elsif')
             nextLex()
             convert(' ')
@@ -466,12 +466,16 @@ def statement(colTab):
             convert('then\n')
             statementSequence(colTab + 1)
         if lex == Lex.ELSE:
-            lText = lText[:-len(tab)]
-            convert('else\n')
+            convert('\n')
+            statementSequence(colTab)
+            convert('else \n')
             nextLex()
             statementSequence(colTab + 1)
+            convert('\n')
+            statementSequence(colTab)
+            convert('end')
         skip(Lex.END)
-        lText = lText[:-len(tab)]
+        luaText = luaText[:-len(tab)]
         convert('end')
     elif lex == Lex.WHILE:
         convert('while')
@@ -483,7 +487,7 @@ def statement(colTab):
         convert('do\n')
         statementSequence(colTab + 1)
         skip(Lex.END)
-        lText = lText[:-len(tab)]
+        luaText = luaText[:-len(tab)]
         convert('end')
 
 
@@ -638,7 +642,7 @@ Module = MODULE ident [ImportList] DeclarationSequence [BEGIN StatementSequence]
 
 
 def module():
-    global tab, lText
+    global tab, luaText
     skip(Lex.MODULE)
     moduleName = skipName('имя модуля')
     Table.openScope()
@@ -658,14 +662,14 @@ def module():
     if closingName != moduleName:
         error(f'ожидается {moduleName}', closingNamePos)
     skip(Lex.DOT)
-    #lText = lText[:-len(tab)]
+    #luaText = luaText[:-len(tab)]
     Table.closeScope()
 
 
 def addNameConvertModelesAndisOdd():
-    global lText
+    global luaText
     if isOdd:
-        lText = 'function isOdd(x)\n' + tab + 'return x % 2 == 1 \nend\n' + lText
+        luaText = 'function isOdd(x)\n' + tab + 'return x % 2 == 1 \nend\n' + luaText
 
 
 def parse(filename):
@@ -690,5 +694,5 @@ def parse(filename):
     Table.closeScope()
 
     convertL = open(filename[:-1] + 'Lua', 'w')
-    convertL.write(lText)
+    convertL.write(luaText)
     convertL.close()

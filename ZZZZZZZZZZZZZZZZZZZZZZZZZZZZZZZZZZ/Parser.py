@@ -163,7 +163,7 @@ def term():
     if wasMin:
         convert('{')
     kind1, type1 = factor()
-
+    useMin = False
     assert kind1 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
     assert type1 in (BuiltIn.INTEGER, BuiltIn.BOOLEAN)
 
@@ -172,22 +172,26 @@ def term():
             if wasMin:
                 figSc = luaText.rfind('{')
                 luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
-                wasMin = False
+                # wasMin = False
             convert(' * ')
         elif lex == Lex.DIV:
             if wasMin:
                 figSc = luaText.rfind('{')
                 luaText = luaText[:-(len(luaText) - figSc)] + '(' + luaText[figSc + 1:] + ' // '
                 wasMin = False
+                useMin = True
+            else:
+                convert('//')
         else:
             if wasMin:
                 figSc = luaText.rfind('{')
                 luaText = luaText[:-(len(luaText) - figSc)] + '(' + luaText[figSc + 1:] + ' % '
                 wasMin = False
+                useMin = True
         binaryPos = lexPos
         nextLex()
         kind2, type2 = factor()
-        if not wasMin:
+        if not wasMin and useMin:
             convert(')')
         assert kind2 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
         assert type2 in (BuiltIn.INTEGER, BuiltIn.BOOLEAN)

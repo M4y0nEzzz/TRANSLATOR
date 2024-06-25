@@ -9,6 +9,8 @@ from Table import keywordLUA
 luaText = ''
 tab = '   '
 isOdd = False
+isInt = False
+wasMin = False
 
 
 def convert(convertLex):
@@ -81,13 +83,15 @@ def factor():
                     error('недопустимый аргумент функции ABS - ожидается целочисленное выражение', exprPos)
                 convert(')')
             elif obj['id'] == BuiltIn.MAX:
-                convert('math.tointeger(2^31-1)')
+                # convert('math.tointeger(2^31-1)')
+                convert('math.maxinteger')
                 if argKind == Kind.TYPE_NAME and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER
                 else:
                     error('недопустимый аргумент функции MAX - ожидается имя целочисленного типа', exprPos)
             elif obj['id'] == BuiltIn.MIN:
-                convert('math.tointeger(-2^31)')
+                # convert('math.tointeger(-2^31)')
+                convert('math.mininteger')
                 if argKind == Kind.TYPE_NAME and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER
                 else:
@@ -155,7 +159,9 @@ MulOperator = "*"|DIV|MOD.
 
 
 def term():
-    global luaText
+    global luaText, wasMin
+    if wasMin:
+        convert('{')
     kind1, type1 = factor()
 
     assert kind1 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
@@ -163,16 +169,26 @@ def term():
 
     while lex in (Lex.MULTIPLY, Lex.DIV, Lex.MOD):
         if lex == Lex.MULTIPLY:
+            if wasMin:
+                figSc = luaText.rfind('{')
+                luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
+                wasMin = False
             convert(' * ')
         elif lex == Lex.DIV:
-            convert(' // ')
+            if wasMin:
+                figSc = luaText.rfind('{')
+                luaText = luaText[:-(len(luaText) - figSc)] + '(' + luaText[figSc + 1:] + ' // '
+                wasMin = False
         else:
-            convert(' % ')
-
+            if wasMin:
+                figSc = luaText.rfind('{')
+                luaText = luaText[:-(len(luaText) - figSc)] + '(' + luaText[figSc + 1:] + ' % '
+                wasMin = False
         binaryPos = lexPos
         nextLex()
         kind2, type2 = factor()
-
+        if not wasMin:
+            convert(')')
         assert kind2 in (Kind.VAR, Kind.CONST_EXPR, Kind.TYPE_NAME, Kind.GENERAL_EXPR)
         assert type2 in (BuiltIn.INTEGER, BuiltIn.BOOLEAN)
 
@@ -188,7 +204,10 @@ def term():
             # type1 == BuiltIn.INTEGER
         else:
             error('недопустимые типы операндов - ожидается два целочисленных выражения', binaryPos)
-
+    if wasMin:
+        figSc = luaText.rfind('{')
+        luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
+        wasMin = False
     return kind1, type1
 
 
@@ -199,13 +218,13 @@ AddOperator = "+"|"-".
 
 
 def simpleExpression():
+    global wasMin
     wasUnary = False
     if lex in (Lex.PLUS, Lex.MINUS):
         unaryPos = lexPos
-        if lex == lex.PLUS:
-            convert('+')
-        elif lex == lex.MINUS:
+        if lex == lex.MINUS:
             convert('-')
+            wasMin = True
         nextLex()
         wasUnary = True
 
@@ -218,7 +237,7 @@ def simpleExpression():
         if kind1 == Kind.VAR and type1 == BuiltIn.INTEGER:
             kind1 = Kind.GENERAL_EXPR
         elif kind1 in (Kind.CONST_EXPR, Kind.GENERAL_EXPR) and type1 == BuiltIn.INTEGER:
-            pass
+            pass # ok
         else:
             error('унарный плюс и минус применимы только к значениям целого типа', unaryPos)
 
@@ -226,7 +245,7 @@ def simpleExpression():
         binaryPos = lexPos
         if lex == lex.PLUS:
             convert(' + ')
-        elif lex == lex.MINUS:
+        else:
             convert(' - ')
         nextLex()
         kind2, type2 = term()
@@ -316,15 +335,19 @@ def intVariable():
 
 
 def procedureCallArguments(procId):
-    global tab, luaText
+    global tab, luaText, isInt
     global importModule, isSemicolonAndNewLine
     if procId == BuiltIn.HALT:
         skip(Lex.LPAR)
         convert('print(\"Программа завершена с кодом возврата \".. ')
+        convert('{')
         intExpression()
+        figSc = luaText.rfind('{')
+        var = luaText[figSc + 1:]
+        luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
         skip(Lex.RPAR)
         convert(')\n')
-        convert('os.exit()')
+        convert('os.exit(' + var + ')')
     elif procId == BuiltIn.INC:
         skip(Lex.LPAR)
         convert('{')
@@ -361,11 +384,17 @@ def procedureCallArguments(procId):
         skip(Lex.LPAR)
         skip(Lex.RPAR)
     elif procId == BuiltIn.IN_INT:
+        isInt = True
         skip(Lex.LPAR)
+        convert('{')
         intVariable()
-        convert(' = io.read(\"*n\"')
+        figSc = luaText.rfind('{')
+        var = luaText[figSc + 1:]
+        luaText = luaText[:-(len(luaText) - figSc)] + var
+        convert(' = io.read(')
         skip(Lex.RPAR)
-        convert(')')
+        convert(')\n')
+        convert('check_number(' + var + ')')
     elif procId == BuiltIn.OUT_INT:
         skip(Lex.LPAR)
         convert('print(string.format(\"%\".. {')
@@ -380,7 +409,6 @@ def procedureCallArguments(procId):
         luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
         skip(Lex.RPAR)
         convert(')')
-
     else:
         assert procId == BuiltIn.OUT_LN
         skip(Lex.LPAR)

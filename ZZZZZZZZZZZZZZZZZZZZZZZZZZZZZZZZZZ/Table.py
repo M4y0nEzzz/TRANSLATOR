@@ -24,7 +24,11 @@ keywordLUA = [
     'type', 'write', 'seek', 'setvbuf',
     'stdin', 'stdout', 'stderr',
     # libraries:
-    'io', 'math', 'os'
+    'io', 'math', 'os',
+    # my_words
+    'print', 'format', 'string', 'abs', 'mininteger',
+    'maxinteger', 'isOdd', 'exit', 'check_number',
+    'function'
 ]
 
 

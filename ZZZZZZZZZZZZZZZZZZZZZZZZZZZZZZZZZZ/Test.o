@@ -1,0 +1,86 @@
+MODULE Primes;
+IMPORT In, Out;
+VAR
+    q, p, i, d, c, cnt, isOdd, string, print, then, a, b: INTEGER;
+BEGIN
+    (*
+    In.Open();
+    In.Int(q);
+    p := 2;
+    cnt := 0;
+    WHILE p <= q DO
+        d := 2;
+        c := p;
+        WHILE d * d <= c DO
+            IF c MOD d = 0 THEN
+                c := 0;
+            END;
+            INC(d);
+        END;
+        IF c # 0 THEN
+            Out.Int(c, 8);
+            INC(cnt);
+        END;
+        INC(p); (*  inc(x)   x = x + 1  *)
+    END;
+    Out.Ln();
+    Out.Int(cnt, 0);
+    *)
+
+    (*
+    then := 0;
+    string := 1;
+    print := 2;
+    isOdd := 5; (* !!!!!! *)
+    IF ODD(5) THEN
+        Out.Int(-5 DIV 3, 0);
+    END;
+    *)
+
+    (* math.tointeger??? *)
+
+    (* a := MIN(INTEGER); *)
+
+    (*
+    In.Int(10.0);
+    Out.Int(a,0)
+    *)
+
+    (*
+    HALT(5);
+    *)
+    (* разобраться с кодировкой *) (* 5 выводить в os.exit *)
+
+    (*
+    a := 3;
+    INC(a, 5); INC(a , 5);
+    *)
+
+    (*
+    Out.Int(-5 DIV 3, 0);
+    *)
+    (* сначала деление - потом унарный минус *)
+
+
+    In.Int(q);
+    In.Int(p);
+    Out.Int(q, 0);
+    Out.Int(p, 0);
+
+
+    (*
+    q := -p * p DIV p;
+    q := -p DIV (-p DIV p) MOD p;
+
+    WHILE p < q DO
+        INC(p, q)
+    END;
+    IF p < p THEN
+        INC(p)
+    ELSIF p < p THEN
+        INC(p, 5)
+    ELSE
+        INC(q, q)
+    END;
+    *)
+END Primes.

@@ -144,7 +144,7 @@ def factor():
             error('имя типа нельзя заключать в дополнительные скобки', openPos)
 
         skip(Lex.RPAR)
-        convert(')')
+        # convert(')')
 
         if kind == Kind.VAR:
             kind = Kind.GENERAL_EXPR
@@ -177,17 +177,20 @@ def term():
         elif lex == Lex.DIV:
             if wasMin:
                 figSc = luaText.rfind('{')
-                luaText = luaText[:-(len(luaText) - figSc)] + '(' + luaText[figSc + 1:] + ' // '
+                luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:] + ' // '
                 wasMin = False
                 useMin = True
             else:
-                convert('//')
+                convert(' // ')
+
         else:
             if wasMin:
                 figSc = luaText.rfind('{')
-                luaText = luaText[:-(len(luaText) - figSc)] + '(' + luaText[figSc + 1:] + ' % '
+                luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:] + ' % '
                 wasMin = False
                 useMin = True
+            else:
+                convert(' % ')
         binaryPos = lexPos
         nextLex()
         kind2, type2 = factor()
@@ -208,12 +211,12 @@ def term():
             # type1 == BuiltIn.INTEGER
         else:
             error('недопустимые типы операндов - ожидается два целочисленных выражения', binaryPos)
+
     if wasMin:
         figSc = luaText.rfind('{')
         luaText = luaText[:-(len(luaText) - figSc)] + luaText[figSc + 1:]
         wasMin = False
     return kind1, type1
-
 
 '''
 SimpleExpression = ["+"|"-"] term {AddOperator term}.
@@ -227,10 +230,11 @@ def simpleExpression():
     if lex in (Lex.PLUS, Lex.MINUS):
         unaryPos = lexPos
         if lex == lex.MINUS:
-            convert('-')
+            convert('-(')
             wasMin = True
         nextLex()
         wasUnary = True
+
 
     kind1, type1 = term()
 
@@ -241,7 +245,7 @@ def simpleExpression():
         if kind1 == Kind.VAR and type1 == BuiltIn.INTEGER:
             kind1 = Kind.GENERAL_EXPR
         elif kind1 in (Kind.CONST_EXPR, Kind.GENERAL_EXPR) and type1 == BuiltIn.INTEGER:
-            pass # ok
+            pass
         else:
             error('унарный плюс и минус применимы только к значениям целого типа', unaryPos)
 
@@ -367,6 +371,7 @@ def procedureCallArguments(procId):
             intExpression()
         else:
             convert('+ 1')
+            convert('\n')
         skip(Lex.RPAR)
     elif procId == BuiltIn.DEC:
         skip(Lex.LPAR)
@@ -383,6 +388,7 @@ def procedureCallArguments(procId):
             intExpression()
         else:
             convert('- 1')
+            convert('\n')
         skip(Lex.RPAR)
     elif procId == BuiltIn.IN_OPEN:
         skip(Lex.LPAR)
@@ -395,10 +401,10 @@ def procedureCallArguments(procId):
         figSc = luaText.rfind('{')
         var = luaText[figSc + 1:]
         luaText = luaText[:-(len(luaText) - figSc)] + var
-        convert(' = io.read(')
+        convert(' = read_number()')
         skip(Lex.RPAR)
-        convert(')\n')
-        convert('check_number(' + var + ')')
+        # convert(')\n')
+        # convert(var + ' = check_number(' + var + ')')
     elif procId == BuiltIn.OUT_INT:
         skip(Lex.LPAR)
         convert('print(string.format(\"%\".. {')
@@ -489,7 +495,7 @@ def statement(colTab):
         statementSequence(colTab+1)
         while lex == Lex.ELSIF:
             # luaText = luaText[:-len(tab)]
-            convert('elsif')
+            convert('elseif')
             nextLex()
             convert(' ')
             boolExpression()
@@ -519,7 +525,8 @@ def statement(colTab):
         convert('do\n')
         statementSequence(colTab + 1)
         skip(Lex.END)
-        luaText = luaText[:-len(tab)]
+        # luaText = luaText[:-len(tab)]
+        convert('\n')
         convert('end')
 
 
@@ -699,9 +706,15 @@ def module():
 
 
 def addNameConvertModelesAndisOdd():
-    global luaText
+    global luaText, isOdd
     if isOdd:
         luaText = 'function isOdd(x)\n' + tab + 'return x % 2 == 1 \nend\n' + luaText
+    if isInt:
+        luaText = ('inputQueue = {}\n' + 'function read_number()\n' + tab + 'while #inputQueue == 0 do\n' + 2*tab +
+                    'for token in string.gmatch(io.read(), "[^%s]+") do\n' + 3*tab + 'inputQueue[#inputQueue+1] = token\n' +
+                    2*tab + 'end\n' + tab + 'end\n' + tab + 'local s\n' + tab + 's = table.remove(inputQueue, 1)\n' + tab +
+                    'if not pcall(math.tointeger, s) then\n' + 2*tab + 'error("Некорректный ввод")\n' + tab + 'end\n' +
+                    tab + 'return math.tointeger(s)\n' + 'end\n' + luaText)
 
 
 def parse(filename):

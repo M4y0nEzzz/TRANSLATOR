@@ -3,7 +3,7 @@ from Text import error, chEOT
 from Lexemes import Lex
 
 MAXINT = (2**63)-1
-
+MININT = -2**63
 
 # Ключевые слова Оберона-2
 KEYWORDS = {
@@ -81,6 +81,8 @@ def scanNumber():
         value = value * 10 + d
         if value > MAXINT:
             error(f'слишком большое число, максимум {MAXINT}')
+        elif value < MININT:
+            error(f'слишком маленькое число, минимум {MININT}')
         next_ch()
     return Lex.NUMBER
 

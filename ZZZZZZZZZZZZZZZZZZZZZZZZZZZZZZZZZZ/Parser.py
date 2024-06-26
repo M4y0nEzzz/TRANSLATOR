@@ -83,14 +83,14 @@ def factor():
                     error('недопустимый аргумент функции ABS - ожидается целочисленное выражение', exprPos)
                 convert(')')
             elif obj['id'] == BuiltIn.MAX:
-                # convert('math.tointeger(2^31-1)')
+                # convert('math.tointeger(2^63-1)')
                 convert('math.maxinteger')
                 if argKind == Kind.TYPE_NAME and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER
                 else:
                     error('недопустимый аргумент функции MAX - ожидается имя целочисленного типа', exprPos)
             elif obj['id'] == BuiltIn.MIN:
-                # convert('math.tointeger(-2^31)')
+                # convert('math.tointeger(-2^63)')
                 convert('math.mininteger')
                 if argKind == Kind.TYPE_NAME and argType == BuiltIn.INTEGER:
                     return Kind.CONST_EXPR, BuiltIn.INTEGER

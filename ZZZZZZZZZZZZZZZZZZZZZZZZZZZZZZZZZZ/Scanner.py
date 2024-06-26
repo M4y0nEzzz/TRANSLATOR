@@ -2,7 +2,7 @@ import Text
 from Text import error, chEOT
 from Lexemes import Lex
 
-MAXINT = (2**31)-1
+MAXINT = (2**63)-1
 
 
 # Ключевые слова Оберона-2
